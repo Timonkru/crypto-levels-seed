@@ -56,6 +56,10 @@ failed, yesterday's numbers; orange STALE after 36h).
 Time windows: option levels + derivatives snapshot = frozen at build time.
 Liq clusters = the most recent ~1600 OKX prints - roughly 24h on quiet days,
 elastically SHORTER on cascade days (the window is activity-dependent).
+Liq clusters SELF-INVALIDATE: once price trades through a cluster after the
+build, the forced flow is spent and the line hides itself (toggle in inputs).
+Walls do not do this - their OI keeps standing all day, a touch does not
+consume them.
 
 ## Honest limitations
 

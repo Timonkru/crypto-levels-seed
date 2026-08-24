@@ -18,6 +18,7 @@ Fail-soft: every provider block degrades to zeros / yesterday's stored levels
 instead of killing the build. Each day = one row per coin in data/levels_*.csv
 (idempotent: today's date is replaced on re-run).
 """
+import time
 from datetime import date
 from pathlib import Path
 
@@ -41,7 +42,7 @@ COINS = [("BTC", "BTCUSDT", "BTC-USDT"),
 FIELDS = ["FLIP", "CW", "PW", "CW2", "PW2", "NCW", "NPW", "NF", "MP", "SPOT",
           "EM", "GEXBN", "VAN", "VANK", "CHM", "CHMK",
           "FUND", "OIU", "OID", "LSR", "TLS",
-          "LQ1", "LQ1D", "LQ2", "LQ2D", "LQ3", "LQ3D"]
+          "LQ1", "LQ1D", "LQ2", "LQ2D", "LQ3", "LQ3D", "TS"]
 
 
 def g(lv, key):
@@ -91,6 +92,7 @@ showDvol  = input.bool(true,  "DVOL regime in label (DERIBIT:DVOL)",      group 
 
 grpL = "LIQUIDATIONS (recent OKX prints - past flow, not a heatmap)"
 showLiq  = input.bool(true,  "Liq clusters - green = short-liqs, dark red = long-liqs", group = grpL)
+hideDone = input.bool(true,  "Hide liq clusters once traded through (spent flow)", group = grpL)
 showDer  = input.bool(true,  "Funding / OI / L-S line in label",          group = grpL)
 
 t = str.upper(syminfo.ticker)
@@ -133,6 +135,19 @@ lq2   = off(pick(BTC_LQ2, ETH_LQ2))
 lq2d  = pick(BTC_LQ2D, ETH_LQ2D)
 lq3   = off(pick(BTC_LQ3, ETH_LQ3))
 lq3d  = pick(BTC_LQ3D, ETH_LQ3D)
+buildTs = pick(BTC_TS, ETH_TS)   // build time (ms) - liq validity is tracked from here
+
+// ---- Liq cluster self-invalidation ----
+// A liq cluster is a CONSUMED past event, not standing inventory like a wall:
+// once price trades through it AFTER the build, the forced flow is spent and
+// the line has no value anymore - so it hides itself. Gamma/near walls stay
+// (their OI keeps sitting there all day, touch does not consume them).
+var float hiS = na
+var float loS = na
+if buildTs > 0 and time >= buildTs
+    hiS := na(hiS) ? high : math.max(hiS, high)
+    loS := na(loS) ? low : math.min(loS, low)
+liqLive(p) => p > 0 and not (hideDone and buildTs > 0 and not na(hiS) and p <= hiS and p >= loS)
 
 // ---- DVOL regime (yesterday's daily close = confirmed, no repaint) ----
 // Tertiles over the last 250 daily bars, same read as the VIX block in the
@@ -198,11 +213,11 @@ if barstate.islast
         lVA := line.new(x1, vank, bar_index, vank, color = color.new(color.purple, 15), width = 1, extend = extend.right, style = line.style_dotted)
     if showCharm and chmk > 0
         lCH := line.new(x1, chmk, bar_index, chmk, color = color.new(#00838f, 15), width = 1, extend = extend.right, style = line.style_dotted)
-    if showLiq and lq1 > 0
+    if showLiq and liqLive(lq1)
         lL1 := line.new(x1, lq1, bar_index, lq1, color = liqCol(lq1d), width = 2, extend = extend.right, style = line.style_dotted)
-    if showLiq and lq2 > 0
+    if showLiq and liqLive(lq2)
         lL2 := line.new(x1, lq2, bar_index, lq2, color = liqCol(lq2d), width = 2, extend = extend.right, style = line.style_dotted)
-    if showLiq and lq3 > 0
+    if showLiq and liqLive(lq3)
         lL3 := line.new(x1, lq3, bar_index, lq3, color = liqCol(lq3d), width = 2, extend = extend.right, style = line.style_dotted)
     regTxt = reg == 1 ? "LONG GAMMA (pin/reversion)" : reg == -1 ? "SHORT GAMMA (trend/amplify)" : reg == 0 ? "FLIP ZONE (no signal)" : "no data"
     flowTxt = (van != 0.0 or chm != 0.0) ?
@@ -329,6 +344,7 @@ def main():
         for i in range(3):
             vals[f"LQ{i + 1}"] = lq[i]["price"] if i < len(lq) else 0.0
             vals[f"LQ{i + 1}D"] = float(lq[i]["dir"]) if i < len(lq) else 0.0
+        vals["TS"] = time.time() * 1000.0  # build time (ms) for liq self-invalidation
 
         levels[coin] = vals
         store_levels(coin, today, vals)
