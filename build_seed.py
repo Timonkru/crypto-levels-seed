@@ -90,7 +90,7 @@ showCharm = input.bool(true,  "CHARM strike - aqua, dotted",              group 
 showDvol  = input.bool(true,  "DVOL regime in label (DERIBIT:DVOL)",      group = grpV)
 
 grpL = "LIQUIDATIONS (recent OKX prints - past flow, not a heatmap)"
-showLiq  = input.bool(true,  "Liq clusters - lime = short-liqs, maroon = long-liqs", group = grpL)
+showLiq  = input.bool(true,  "Liq clusters - green = short-liqs, dark red = long-liqs", group = grpL)
 showDer  = input.bool(true,  "Funding / OI / L-S line in label",          group = grpL)
 
 t = str.upper(syminfo.ticker)
@@ -162,7 +162,9 @@ var line  lE1 = na, var line lE2 = na
 var line  lVA = na, var line lCH = na
 var line  lL1 = na, var line lL2 = na, var line lL3 = na
 var label lab = na
-liqCol(d) => d > 0 ? color.new(color.lime, 40) : color.new(color.maroon, 30)
+// Liq colors are picked for BOTH chart themes (bright lime at 40% transparency
+// was invisible on light charts - found live on the first paste 2026-08-24).
+liqCol(d) => d > 0 ? color.new(#2e7d32, 0) : color.new(#b71c1c, 0)
 if barstate.islast
     line.delete(lF), line.delete(lC), line.delete(lP), line.delete(lC2), line.delete(lP2)
     line.delete(lNC), line.delete(lNP), line.delete(lNF), line.delete(lM)
@@ -190,18 +192,18 @@ if barstate.islast
     if showMP and mp > 0
         lM := line.new(x1, mp, bar_index, mp, color = color.gray, width = 1, extend = extend.right, style = line.style_dotted)
     if showEM and em > 0 and spotL > 0
-        lE1 := line.new(x1, spotL + em + offset, bar_index, spotL + em + offset, color = color.new(color.blue, 55), width = 1, extend = extend.right, style = line.style_dotted)
-        lE2 := line.new(x1, spotL - em + offset, bar_index, spotL - em + offset, color = color.new(color.blue, 55), width = 1, extend = extend.right, style = line.style_dotted)
+        lE1 := line.new(x1, spotL + em + offset, bar_index, spotL + em + offset, color = color.new(color.blue, 30), width = 1, extend = extend.right, style = line.style_dotted)
+        lE2 := line.new(x1, spotL - em + offset, bar_index, spotL - em + offset, color = color.new(color.blue, 30), width = 1, extend = extend.right, style = line.style_dotted)
     if showVanna and vank > 0
-        lVA := line.new(x1, vank, bar_index, vank, color = color.new(color.purple, 40), width = 1, extend = extend.right, style = line.style_dotted)
+        lVA := line.new(x1, vank, bar_index, vank, color = color.new(color.purple, 15), width = 1, extend = extend.right, style = line.style_dotted)
     if showCharm and chmk > 0
-        lCH := line.new(x1, chmk, bar_index, chmk, color = color.new(color.aqua, 45), width = 1, extend = extend.right, style = line.style_dotted)
+        lCH := line.new(x1, chmk, bar_index, chmk, color = color.new(#00838f, 15), width = 1, extend = extend.right, style = line.style_dotted)
     if showLiq and lq1 > 0
-        lL1 := line.new(x1, lq1, bar_index, lq1, color = liqCol(lq1d), width = 1, extend = extend.right, style = line.style_dotted)
+        lL1 := line.new(x1, lq1, bar_index, lq1, color = liqCol(lq1d), width = 2, extend = extend.right, style = line.style_dotted)
     if showLiq and lq2 > 0
-        lL2 := line.new(x1, lq2, bar_index, lq2, color = liqCol(lq2d), width = 1, extend = extend.right, style = line.style_dotted)
+        lL2 := line.new(x1, lq2, bar_index, lq2, color = liqCol(lq2d), width = 2, extend = extend.right, style = line.style_dotted)
     if showLiq and lq3 > 0
-        lL3 := line.new(x1, lq3, bar_index, lq3, color = liqCol(lq3d), width = 1, extend = extend.right, style = line.style_dotted)
+        lL3 := line.new(x1, lq3, bar_index, lq3, color = liqCol(lq3d), width = 2, extend = extend.right, style = line.style_dotted)
     regTxt = reg == 1 ? "LONG GAMMA (pin/reversion)" : reg == -1 ? "SHORT GAMMA (trend/amplify)" : reg == 0 ? "FLIP ZONE (no signal)" : "no data"
     flowTxt = (van != 0.0 or chm != 0.0) ?
          "\nVanna " + (van > 0 ? "+" : "") + str.tostring(van, "#.#") + "M (vol down = " + (van > 0 ? "BUY" : "SELL") + ")" + (vank > 0 ? " @" + str.tostring(vank, format.mintick) : "") +
