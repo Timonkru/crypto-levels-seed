@@ -32,6 +32,31 @@ clipboard. Paste into the TradingView Pine editor (Ctrl+A, Ctrl+V), save,
 a STALE warning after 36h. Coin auto-detection from the chart symbol (BTC/ETH),
 manual offset input for broker basis.
 
+## Legend (what every line is)
+
+| Look | Level | Nature |
+|---|---|---|
+| Yellow thick | Gamma flip (7-45 DTE) | model (dealer-sign assumption) |
+| Red / green thick | Call wall / put wall | model on real OI |
+| Red / green dashed | Second walls (strike shelf) | model on real OI |
+| Orange / teal dotted | 0DTE call / put wall (0-5 DTE) | model on real OI |
+| Blue dotted pair | Expected move +/-1d (ATM IV, ACT/365) | real IV, mechanical |
+| Grey dotted (off) | Max pain | classic calculation |
+| Purple / dark cyan dotted | Vanna / charm strike | model, unvalidated - context only |
+| Dark green dotted, w2 | Liq cluster: SHORTS flushed = forced BUYING happened there | real past events (OKX) |
+| Dark red dotted, w2 | Liq cluster: LONGS flushed = forced SELLING | real past events (OKX) |
+| Background green/red/grey | Long gamma / short gamma / flip zone | derived from flip |
+
+Label lines: regime + flip distance + net GEX | vanna/charm flows | Binance
+funding / OI +24h delta / global L-S account ratio / top-trader position ratio |
+DVOL tertile regime (the only LIVE value, via `DERIBIT:DVOL`) | level date
+(`(regen)` = layout rebuilt, numbers unchanged; `(COIN=stored)` = provider
+failed, yesterday's numbers; orange STALE after 36h).
+
+Time windows: option levels + derivatives snapshot = frozen at build time.
+Liq clusters = the most recent ~1600 OKX prints - roughly 24h on quiet days,
+elastically SHORTER on cascade days (the window is activity-dependent).
+
 ## Honest limitations
 
 - **Every level is a model estimate.** GEX/flip/walls assume the standard
